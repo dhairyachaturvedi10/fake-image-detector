@@ -1,0 +1,5 @@
+model.onnx
+
+#Inside model file
+model/model.pth
+model/training_plot.png
