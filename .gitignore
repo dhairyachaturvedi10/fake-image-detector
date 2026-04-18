@@ -1,5 +1,5 @@
-model.onnx
+/model.onnx
 
 #Inside model file
-model/model.pth
-model/training_plot.png
+/model/model.pth
+/model/training_plot.png
