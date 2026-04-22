@@ -1,23 +1,5 @@
-const uploadArea    = document.getElementById('uploadArea');
-const fileInput     = document.getElementById('fileInput');
-const resultSection = document.getElementById('resultSection');
-const previewImg    = document.getElementById('previewImg');
-const imgFilename   = document.getElementById('imgFilename');
-const loadingState  = document.getElementById('loadingState');
-const resultState   = document.getElementById('resultState');
-const verdictChip   = document.getElementById('verdictChip');
-const verdictIcon   = document.getElementById('verdictIcon');
-const verdictLabel  = document.getElementById('verdictLabel');
-const verdictSub    = document.getElementById('verdictSub');
-const confPct       = document.getElementById('confPct');
-const barFill       = document.getElementById('barFill');
-const fakeProb      = document.getElementById('fakeProb');
-const realProb      = document.getElementById('realProb');
-const resetBtn      = document.getElementById('resetBtn');
-
 const CLASS_NAMES = ['FAKE', 'REAL'];
 const MODEL_PATH  = 'model.onnx';
-
 let session = null;
 
 async function loadModel() {
@@ -32,27 +14,20 @@ loadModel();
 
 function preprocessImage(imgElement) {
   const canvas = document.createElement('canvas');
-  canvas.width  = 224;
-  canvas.height = 224;
+  canvas.width = 224; canvas.height = 224;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(imgElement, 0, 0, 224, 224);
-
-  const imageData = ctx.getImageData(0, 0, 224, 224);
-  const { data }  = imageData;
+  const { data } = ctx.getImageData(0, 0, 224, 224);
 
   const mean = [0.485, 0.456, 0.406];
   const std  = [0.229, 0.224, 0.225];
-  const float32 = new Float32Array(1 * 3 * 224 * 224);
+  const float32 = new Float32Array(3 * 224 * 224);
 
   for (let i = 0; i < 224 * 224; i++) {
-    const r = data[i * 4]     / 255;
-    const g = data[i * 4 + 1] / 255;
-    const b = data[i * 4 + 2] / 255;
-    float32[0 * 224 * 224 + i] = (r - mean[0]) / std[0];
-    float32[1 * 224 * 224 + i] = (g - mean[1]) / std[1];
-    float32[2 * 224 * 224 + i] = (b - mean[2]) / std[2];
+    float32[0 * 224 * 224 + i] = (data[i*4]   / 255 - mean[0]) / std[0];
+    float32[1 * 224 * 224 + i] = (data[i*4+1] / 255 - mean[1]) / std[1];
+    float32[2 * 224 * 224 + i] = (data[i*4+2] / 255 - mean[2]) / std[2];
   }
-
   return new ort.Tensor('float32', float32, [1, 3, 224, 224]);
 }
 
@@ -63,95 +38,112 @@ function softmax(arr) {
   return exps.map(x => x / sum);
 }
 
-async function predict(imgElement) {
-  if (!session) {
-    alert('Model is still loading, please try again in a moment.');
-    return null;
-  }
-  const tensor = preprocessImage(imgElement);
-  const output = await session.run({ input: tensor });
-  const probs  = softmax(Array.from(output.output.data));
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
 
-  const fakeScore = Math.round(probs[0] * 100);
-  const realScore = Math.round(probs[1] * 100);
-  const isFake    = fakeScore >= realScore;
-
-  return {
-    label:      isFake ? 'FAKE' : 'REAL',
-    confidence: isFake ? fakeScore : realScore,
-    fakeScore,
-    realScore,
-  };
-}
-
-uploadArea.addEventListener('click', () => fileInput.click());
-
-uploadArea.addEventListener('dragover', (e) => {
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
   e.preventDefault();
-  uploadArea.classList.add('dragover');
-});
-uploadArea.addEventListener('dragleave', () => {
-  uploadArea.classList.remove('dragover');
-});
-uploadArea.addEventListener('drop', (e) => {
-  e.preventDefault();
-  uploadArea.classList.remove('dragover');
+  dropZone.classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) handleImage(file);
+  if (file) handleFile(file);
 });
 
 fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) handleImage(fileInput.files[0]);
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
 });
 
-function handleImage(file) {
+function handleFile(file) {
+  if (!file.type.match(/image\/(jpeg|png|webp)/)) { alert('Please upload a JPG, PNG, or WEBP image.'); return; }
+  if (file.size > 10 * 1024 * 1024) { alert('File size must be under 10MB.'); return; }
+
   const reader = new FileReader();
-  imgFilename.textContent = file.name;
-
-  reader.onload = async (e) => {
+  reader.onload = e => {
+    document.getElementById('upload-prompt').style.display = 'none';
+    const previewImg = document.getElementById('preview-img');
     previewImg.src = e.target.result;
+    document.getElementById('preview-section').style.display = 'block';
 
-    uploadArea.style.display    = 'none';
-    resultSection.style.display = 'grid';
-    loadingState.style.display  = 'flex';
-    resultState.style.display   = 'none';
-
-    previewImg.onload = async () => {
-      const result = await predict(previewImg);
-      if (result) showResult(result);
-    };
+    previewImg.onload = () => setTimeout(() => {
+      showLoading();
+      analyzeImage(previewImg);
+    }, 800);
   };
   reader.readAsDataURL(file);
 }
 
-function showResult(result) {
-  loadingState.style.display = 'none';
-  resultState.style.display  = 'flex';
-
-  const isFake = result.label === 'FAKE';
-
-  verdictChip.className  = 'verdict-chip ' + (isFake ? 'fake' : 'real');
-  verdictIcon.className  = 'vicon ' + (isFake ? 'fake' : 'real');
-  verdictIcon.textContent = isFake ? '✗' : '✓';
-  verdictLabel.className  = 'vlabel ' + (isFake ? 'fake' : 'real');
-  verdictLabel.textContent = isFake ? 'AI Generated' : 'Real Photo';
-  verdictSub.textContent  = result.confidence >= 80
-    ? 'Detected with high confidence'
-    : 'Detected with moderate confidence';
-
-  confPct.textContent      = result.confidence + '%';
-  barFill.className        = 'bar-fill ' + (isFake ? 'fake' : 'real');
-  barFill.style.width      = result.confidence + '%';
-
-  fakeProb.className       = 'prob-val fake';
-  fakeProb.textContent     = result.fakeScore + '%';
-  realProb.className       = 'prob-val real';
-  realProb.textContent     = result.realScore + '%';
+function showLoading() {
+  document.getElementById('preview-section').style.display = 'none';
+  document.getElementById('loading-section').style.display = 'block';
 }
 
-resetBtn.addEventListener('click', () => {
-  uploadArea.style.display    = 'block';
-  resultSection.style.display = 'none';
-  fileInput.value             = '';
-  barFill.style.width         = '0%';
+async function analyzeImage(imgElement) {
+  if (!session) {
+    showResult({ verdict: 'REAL', confidence: 0, reason: 'Model still loading — please try again in a moment.' });
+    return;
+  }
+  try {
+    const tensor = preprocessImage(imgElement);
+    const output = await session.run({ input: tensor });
+    const probs  = softmax(Array.from(output.output.data));
+
+    const fakeScore = Math.round(probs[0] * 100);
+    const realScore = Math.round(probs[1] * 100);
+    const isFake    = fakeScore >= realScore;
+
+    showResult({
+      verdict:    isFake ? 'AI-GENERATED' : 'REAL',
+      confidence: isFake ? fakeScore : realScore,
+      reason:     isFake
+        ? `AI-generated patterns detected — ${fakeScore}% fake / ${realScore}% real`
+        : `Real photograph characteristics identified — ${realScore}% real / ${fakeScore}% fake`
+    });
+  } catch (err) {
+    console.error(err);
+    showResult({ verdict: 'REAL', confidence: 0, reason: 'Analysis failed — please try again.' });
+  }
+}
+
+function showResult({ verdict, confidence, reason }) {
+  document.getElementById('loading-section').style.display = 'none';
+  const resultSection = document.getElementById('result-section');
+  const card          = document.getElementById('result-card');
+  const verdictEl     = document.getElementById('result-verdict');
+  const subEl         = document.getElementById('result-sub');
+  const confPct       = document.getElementById('conf-pct');
+  const confBar       = document.getElementById('conf-bar');
+
+  const isReal = verdict === 'REAL';
+  card.className        = 'result-card ' + (isReal ? 'real' : 'fake');
+  verdictEl.textContent = isReal ? '✓ Real Photo' : '⚡ AI Generated';
+  subEl.textContent     = reason;
+  confPct.textContent   = confidence + '%';
+  resultSection.style.display = 'block';
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    confBar.style.width = confidence + '%';
+  }));
+}
+
+function resetAll() {
+  document.getElementById('upload-prompt').style.display  = 'block';
+  document.getElementById('preview-section').style.display  = 'none';
+  document.getElementById('loading-section').style.display  = 'none';
+  document.getElementById('result-section').style.display   = 'none';
+  document.getElementById('conf-bar').style.width = '0%';
+  fileInput.value = '';
+}
+
+// Paste from clipboard (Ctrl+V)
+document.addEventListener('paste', e => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) handleFile(file);
+      break;
+    }
+  }
 });

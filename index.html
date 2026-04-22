@@ -1,117 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FakeDetect AI</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisionScan AI — Real or Fake?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Syne:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 </head>
 <body>
 
-  <div class="page">
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
 
-    <div class="topbar">
-      <div class="brand"><span class="brand-dot"></span>FakeDetect AI</div>
-      <div class="pill">MobileNetV2 · CIFAKE</div>
+<div class="container">
+  <nav>
+    <div class="logo">
+      <span class="logo-dot"></span>
+      VisionScan AI
     </div>
+    <div class="badge">MobileNetV2 · CIFAKE</div>
+  </nav>
 
-    <div class="hero">
-      <h1>Is this image <span>real?</span></h1>
-      <p>Upload any image and our deep learning model will detect whether it was AI-generated or captured by a camera.</p>
-    </div>
-
-    <!-- Upload area -->
-    <div class="upload-card" id="uploadArea">
-      <div class="upload-icon">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </div>
-      <h2>Drop your image here</h2>
-      <p>or click to browse from your device</p>
-      <label class="choose-btn" for="fileInput">Choose image</label>
-      <input type="file" id="fileInput" accept="image/*" hidden />
-      <div class="file-types">
-        <span class="ft">JPG</span>
-        <span class="ft">PNG</span>
-        <span class="ft">WEBP</span>
-        <span class="ft">up to 10MB</span>
-      </div>
-    </div>
-
-    <!-- Result grid (hidden until image uploaded) -->
-    <div class="result-grid" id="resultSection" style="display:none;">
-
-      <div class="img-card">
-        <img id="previewImg" src="" alt="Uploaded image preview" />
-        <div class="img-overlay">
-          <div class="img-filename" id="imgFilename">image.jpg</div>
-        </div>
-      </div>
-
-      <div class="analysis-card">
-
-        <!-- Loading state -->
-        <div id="loadingState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;flex:1;min-height:280px">
-          <div class="spinner"></div>
-          <p style="font-size:0.85rem;color:#444">Analysing image...</p>
-        </div>
-
-        <!-- Result state -->
-        <div id="resultState" style="display:none;flex-direction:column;gap:20px;">
-
-          <div class="verdict-section">
-            <div class="verdict-chip" id="verdictChip">
-              <div class="vicon" id="verdictIcon"></div>
-              <span class="vlabel" id="verdictLabel"></span>
-            </div>
-            <div class="vsub" id="verdictSub"></div>
-          </div>
-
-          <div class="sep"></div>
-
-          <div>
-            <div class="conf-row">
-              <span class="conf-title">Confidence</span>
-              <span class="conf-pct" id="confPct"></span>
-            </div>
-            <div class="bar-track">
-              <div class="bar-fill" id="barFill"></div>
-            </div>
-          </div>
-
-          <div class="probs">
-            <div class="prob-item">
-              <div class="prob-val" id="fakeProb"></div>
-              <div class="prob-lbl">AI generated</div>
-            </div>
-            <div class="prob-item">
-              <div class="prob-val" id="realProb"></div>
-              <div class="prob-lbl">Real photo</div>
-            </div>
-          </div>
-
-          <button class="reset-btn" id="resetBtn">↑ Analyse another image</button>
-
-        </div>
-      </div>
-    </div>
-
-    <div class="footer-bar">
-      <div class="footer-cell"><div class="fc-val">94%</div><div class="fc-lbl">Accuracy</div></div>
-      <div class="footer-cell"><div class="fc-val">4,000</div><div class="fc-lbl">Training images</div></div>
-      <div class="footer-cell"><div class="fc-val">15</div><div class="fc-lbl">Epochs</div></div>
-      <div class="footer-cell"><div class="fc-val">MNV2</div><div class="fc-lbl">Architecture</div></div>
-    </div>
-    <div class="disclaimer">
-      * Optimised for Stable Diffusion generated images. Results may vary
-      for other AI generators such as Midjourney or DALL-E, or heavily
-      compressed web images. If you are unsure, consult multiple sources.
-    </div>
-
-  </div> <!-- end .page -->
-
+  <div class="hero">
+    <p class="hero-eyebrow">// Deep Learning Image Forensics</p>
+    <h1>Is this image <span class="word-real">real?</span></h1>
+    <p>Upload any image and our neural net will detect whether it was AI-generated or captured by a real camera — in seconds.</p>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Upload Card -->
+  <div class="upload-card" id="upload-card">
+    <div class="upload-inner" id="drop-zone">
+      <div id="upload-prompt">
+        <div class="upload-icon-wrap">
+          <div class="upload-icon-ring"></div>
+          <div class="upload-icon-ring-2"></div>
+          <div class="upload-icon-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 16V4M12 4l-4 4M12 4l4 4"/>
+              <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="drop-text">Drop your image here</div>
+        <div class="drop-sub">or click to browse from your device</div>
+        <button class="choose-btn" onclick="document.getElementById('file-input').click()">Choose Image</button>
+        <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp">
+        <div class="format-tags">
+          <span class="format-tag">JPG</span>
+          <span class="format-tag">PNG</span>
+          <span class="format-tag">WEBP</span>
+          <span class="format-tag">up to 10MB</span>
+          <span class="format-tag">Ctrl+V to paste</span>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="preview-section">
+        <div class="preview-img-wrap">
+          <img id="preview-img" src="" alt="Preview">
+          <div class="scan-line"></div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="loading-section">
+        <div class="loader-ring"></div>
+        <div class="loading-text">Analyzing image...</div>
+      </div>
+
+      <!-- Result -->
+      <div id="result-section">
+        <div class="result-card" id="result-card">
+          <div class="result-label">Verdict</div>
+          <div class="result-verdict" id="result-verdict">—</div>
+          <div class="result-sub" id="result-sub">—</div>
+          <div class="conf-wrap">
+            <div class="conf-label">
+              <span>CONFIDENCE</span>
+              <span id="conf-pct">—</span>
+            </div>
+            <div class="conf-bar-bg">
+              <div class="conf-bar-fill" id="conf-bar"></div>
+            </div>
+          </div>
+        </div>
+        <button class="reset-btn" onclick="resetAll()">↩ Analyze Another</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-cell"><span class="stat-value">93%</span><span class="stat-label">Accuracy</span></div>
+    <div class="stat-cell"><span class="stat-value">4K</span><span class="stat-label">Training Images</span></div>
+    <div class="stat-cell"><span class="stat-value">15</span><span class="stat-label">Epochs</span></div>
+    <div class="stat-cell"><span class="stat-value">MNV2</span><span class="stat-label">Architecture</span></div>
+  </div>
+
+  <p class="footnote">* Optimised for Stable Diffusion generated images. Results may vary for other AI generators such as Midjourney or DALL·E, or heavily compressed images. If unsure, consult multiple sources.</p>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
