@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def main():
     # ── Config ──────────────────────────────────────────
-    DATA_DIR   = "my_dataset"
+    DATA_DIR   = "model/my_dataset"
     BATCH_SIZE = 32
     EPOCHS     = 15
     LR         = 0.001
