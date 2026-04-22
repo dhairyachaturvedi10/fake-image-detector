@@ -56,7 +56,7 @@ fileInput.addEventListener('change', () => {
 
 function handleFile(file) {
   if (!file.type.match(/image\/(jpeg|png|webp)/)) { alert('Please upload a JPG, PNG, or WEBP image.'); return; }
-  if (file.size > 10 * 1024 * 1024) { alert('File size must be under 10MB.'); return; }
+  if (file.size > 50 * 1024 * 1024) { alert('File size must be under 50MB.'); return; }
 
   const reader = new FileReader();
   reader.onload = e => {
