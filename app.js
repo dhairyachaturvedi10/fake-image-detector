@@ -12,6 +12,7 @@ async function loadModel() {
 }
 loadModel();
 
+// ── Preprocessing (matches val_transforms in train.py) ──
 function preprocessImage(imgElement) {
   const canvas = document.createElement('canvas');
   canvas.width = 224; canvas.height = 224;
@@ -38,10 +39,14 @@ function softmax(arr) {
   return exps.map(x => x / sum);
 }
 
+// ── Upload handlers ───────────────────────────────────
 const dropZone  = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
@@ -54,35 +59,62 @@ fileInput.addEventListener('change', () => {
   if (fileInput.files[0]) handleFile(fileInput.files[0]);
 });
 
+// ── Clipboard paste (Ctrl+V) ──────────────────────────
+document.addEventListener('paste', e => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) handleFile(file);
+      break;
+    }
+  }
+});
+
+// ── Main file handler ─────────────────────────────────
 function handleFile(file) {
-  if (!file.type.match(/image\/(jpeg|png|webp)/)) { alert('Please upload a JPG, PNG, or WEBP image.'); return; }
-  if (file.size > 50 * 1024 * 1024) { alert('File size must be under 50MB.'); return; }
+  if (!file.type.match(/image\/(jpeg|png|webp)/)) {
+    alert('Please upload a JPG, PNG, or WEBP image.');
+    return;
+  }
+  if (file.size > 50 * 1024 * 1024) {
+    alert('File size must be under 50MB.');
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = e => {
-    document.getElementById('upload-prompt').style.display = 'none';
-    const previewImg = document.getElementById('preview-img');
-    previewImg.src = e.target.result;
-    document.getElementById('preview-section').style.display = 'block';
+    const src = e.target.result;
 
-    previewImg.onload = () => setTimeout(() => {
-      showLoading();
-      analyzeImage(previewImg);
-    }, 800);
+    // Set image on result panel immediately
+    const resultImg = document.getElementById('result-img');
+    resultImg.src = src;
+
+    // Hide upload card, show loading inside it
+    document.getElementById('upload-prompt').style.display = 'none';
+    document.getElementById('loading-section').style.display = 'block';
+
+    // Wait for image to render, then run inference
+    resultImg.onload = () => {
+      setTimeout(() => analyzeImage(resultImg), 600);
+    };
+
+    // If image is already cached (same src), onload won't fire — trigger manually
+    if (resultImg.complete) {
+      setTimeout(() => analyzeImage(resultImg), 600);
+    }
   };
   reader.readAsDataURL(file);
 }
 
-function showLoading() {
-  document.getElementById('preview-section').style.display = 'none';
-  document.getElementById('loading-section').style.display = 'block';
-}
-
+// ── ONNX inference ────────────────────────────────────
 async function analyzeImage(imgElement) {
   if (!session) {
-    showResult({ verdict: 'REAL', confidence: 0, reason: 'Model still loading — please try again in a moment.' });
+    showResult({ verdict: 'REAL', confidence: 0, fakeScore: 0, realScore: 0, reason: 'Model still loading — please try again in a moment.' });
     return;
   }
+
   try {
     const tensor = preprocessImage(imgElement);
     const output = await session.run({ input: tensor });
@@ -95,55 +127,75 @@ async function analyzeImage(imgElement) {
     showResult({
       verdict:    isFake ? 'AI-GENERATED' : 'REAL',
       confidence: isFake ? fakeScore : realScore,
-      reason:     isFake
+      fakeScore,
+      realScore,
+      reason: isFake
         ? `AI-generated patterns detected — ${fakeScore}% fake / ${realScore}% real`
         : `Real photograph characteristics identified — ${realScore}% real / ${fakeScore}% fake`
     });
   } catch (err) {
     console.error(err);
-    showResult({ verdict: 'REAL', confidence: 0, reason: 'Analysis failed — please try again.' });
+    showResult({ verdict: 'REAL', confidence: 0, fakeScore: 0, realScore: 0, reason: 'Analysis failed — please try again.' });
   }
 }
 
-function showResult({ verdict, confidence, reason }) {
-  document.getElementById('loading-section').style.display = 'none';
+// ── Show result ───────────────────────────────────────
+function showResult({ verdict, confidence, fakeScore, realScore, reason }) {
+  // Hide upload card entirely
+  document.getElementById('upload-card').style.display = 'none';
+
+  // Show result layout (image + verdict side by side)
+  const resultLayout = document.getElementById('result-layout');
+  resultLayout.style.display = 'grid';
+
+  // Show result section
   const resultSection = document.getElementById('result-section');
-  const card          = document.getElementById('result-card');
-  const verdictEl     = document.getElementById('result-verdict');
-  const subEl         = document.getElementById('result-sub');
-  const confPct       = document.getElementById('conf-pct');
-  const confBar       = document.getElementById('conf-bar');
+  resultSection.style.display = 'block';
 
   const isReal = verdict === 'REAL';
+
+  // Verdict card
+  const card      = document.getElementById('result-card');
+  const verdictEl = document.getElementById('result-verdict');
+  const subEl     = document.getElementById('result-sub');
+  const confPct   = document.getElementById('conf-pct');
+  const confBar   = document.getElementById('conf-bar');
+  const realProb  = document.getElementById('real-prob');
+  const fakeProb  = document.getElementById('fake-prob');
+
   card.className        = 'result-card ' + (isReal ? 'real' : 'fake');
   verdictEl.textContent = isReal ? '✓ Real Photo' : '⚡ AI Generated';
   subEl.textContent     = reason;
   confPct.textContent   = confidence + '%';
-  resultSection.style.display = 'block';
 
+  // Probability values with color classes
+  realProb.className    = 'prob-val real-val';
+  realProb.textContent  = realScore + '%';
+  fakeProb.className    = 'prob-val fake-val';
+  fakeProb.textContent  = fakeScore + '%';
+
+  // Image badge
+  document.getElementById('img-badge').textContent = 'Analysed Image';
+
+  // Animate confidence bar
   requestAnimationFrame(() => requestAnimationFrame(() => {
     confBar.style.width = confidence + '%';
   }));
 }
 
+// ── Reset ─────────────────────────────────────────────
 function resetAll() {
-  document.getElementById('upload-prompt').style.display  = 'block';
-  document.getElementById('preview-section').style.display  = 'none';
-  document.getElementById('loading-section').style.display  = 'none';
-  document.getElementById('result-section').style.display   = 'none';
+  // Show upload card again
+  document.getElementById('upload-card').style.display = 'block';
+  document.getElementById('upload-prompt').style.display = 'block';
+  document.getElementById('loading-section').style.display = 'none';
+
+  // Hide result layout
+  document.getElementById('result-layout').style.display = 'none';
+  document.getElementById('result-section').style.display = 'none';
+
+  // Reset bar and input
   document.getElementById('conf-bar').style.width = '0%';
+  document.getElementById('result-img').src = '';
   fileInput.value = '';
 }
-
-// Paste from clipboard (Ctrl+V)
-document.addEventListener('paste', e => {
-  const items = e.clipboardData?.items;
-  if (!items) return;
-  for (const item of items) {
-    if (item.type.startsWith('image/')) {
-      const file = item.getAsFile();
-      if (file) handleFile(file);
-      break;
-    }
-  }
-});

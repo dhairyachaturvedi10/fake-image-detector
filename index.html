@@ -20,7 +20,7 @@
       <span class="logo-dot"></span>
       VisionScan AI
     </div>
-    <div class="badge">MobileNetV2 · CIFAKE</div>
+    <div class="badge">MobileNetV2 · CIFAKE · Tristan Zhang</div>
   </nav>
 
   <div class="hero">
@@ -32,6 +32,8 @@
   <!-- Upload Card -->
   <div class="upload-card" id="upload-card">
     <div class="upload-inner" id="drop-zone">
+
+      <!-- Upload prompt -->
       <div id="upload-prompt">
         <div class="upload-icon-wrap">
           <div class="upload-icon-ring"></div>
@@ -44,7 +46,7 @@
           </div>
         </div>
         <div class="drop-text">Drop your image here</div>
-        <div class="drop-sub">or click to browse from your device</div>
+        <div class="drop-sub">or click to browse · or press Ctrl+V to paste</div>
         <button class="choose-btn" onclick="document.getElementById('file-input').click()">Choose Image</button>
         <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.webp">
         <div class="format-tags">
@@ -56,44 +58,59 @@
         </div>
       </div>
 
-      <!-- Preview -->
-      <div id="preview-section">
-        <div class="preview-img-wrap">
-          <img id="preview-img" src="" alt="Preview">
-          <div class="scan-line"></div>
-        </div>
-      </div>
-
       <!-- Loading -->
       <div id="loading-section">
         <div class="loader-ring"></div>
         <div class="loading-text">Analyzing image...</div>
       </div>
 
-      <!-- Result -->
-      <div id="result-section">
-        <div class="result-card" id="result-card">
-          <div class="result-label">Verdict</div>
-          <div class="result-verdict" id="result-verdict">—</div>
-          <div class="result-sub" id="result-sub">—</div>
-          <div class="conf-wrap">
-            <div class="conf-label">
-              <span>CONFIDENCE</span>
-              <span id="conf-pct">—</span>
-            </div>
-            <div class="conf-bar-bg">
-              <div class="conf-bar-fill" id="conf-bar"></div>
-            </div>
-          </div>
-        </div>
-        <button class="reset-btn" onclick="resetAll()">↩ Analyze Another</button>
-      </div>
     </div>
   </div>
 
-  <!-- Stats -->
+  <!-- Result layout: image on left, verdict on right -->
+  <div class="result-layout" id="result-layout">
+
+    <!-- Analysed image stays visible -->
+    <div class="result-img-wrap">
+      <img id="result-img" src="" alt="Analysed image">
+      <div class="img-badge" id="img-badge">Analysed Image</div>
+    </div>
+
+    <!-- Verdict panel -->
+    <div id="result-section">
+      <div class="result-card" id="result-card">
+        <div class="result-label">Verdict</div>
+        <div class="result-verdict" id="result-verdict">—</div>
+        <div class="result-sub" id="result-sub">—</div>
+        <div class="conf-wrap">
+          <div class="conf-label">
+            <span>CONFIDENCE</span>
+            <span id="conf-pct">—</span>
+          </div>
+          <div class="conf-bar-bg">
+            <div class="conf-bar-fill" id="conf-bar"></div>
+          </div>
+        </div>
+        <div class="prob-row">
+          <div class="prob-item">
+            <div class="prob-val" id="real-prob">—</div>
+            <div class="prob-lbl">Real</div>
+          </div>
+          <div class="prob-divider"></div>
+          <div class="prob-item">
+            <div class="prob-val" id="fake-prob">—</div>
+            <div class="prob-lbl">AI Generated</div>
+          </div>
+        </div>
+      </div>
+      <button class="reset-btn" onclick="resetAll()">↩ Analyze Another</button>
+    </div>
+
+  </div>
+
+  <!-- Stats bar -->
   <div class="stats-row">
-    <div class="stat-cell"><span class="stat-value">93%</span><span class="stat-label">Accuracy</span></div>
+    <div class="stat-cell"><span class="stat-value">97%</span><span class="stat-label">Accuracy</span></div>
     <div class="stat-cell"><span class="stat-value">4K</span><span class="stat-label">Training Images</span></div>
     <div class="stat-cell"><span class="stat-value">15</span><span class="stat-label">Epochs</span></div>
     <div class="stat-cell"><span class="stat-value">MNV2</span><span class="stat-label">Architecture</span></div>
